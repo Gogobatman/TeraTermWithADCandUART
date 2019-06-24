@@ -122,6 +122,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	uint8_t dataIn[2]={'9','9'};
 	uint8_t data[11]={'M','E','S','S','U','R','E',' ','I','S',' '};
+	uint8_t tab[3]={' ',' ',' '};
 	uint8_t messureADC=53;
 	uint8_t messureADC2=53;
 	uint8_t Vsense=53;
@@ -135,13 +136,14 @@ int main(void)
 		messureADC=HAL_ADC_GetValue(&hadc1);
 		Vsense=(3*messureADC/4095);
 		messureADC = ((Vsense-0.76)/0.0025)+25;
-			dataIn[0]=messureADC/10;
-			dataIn[1]=messureADC%10;
+			dataIn[0]=(messureADC/10)+'0';
+			dataIn[1]=(messureADC%10)+'0';
 		
 		}
 		//HAL_UART_Receive(&huart1,data,11,1000);
 		HAL_UART_Transmit(&huart2,data,11,1000);
 		HAL_UART_Transmit(&huart2,dataIn,2,1000);
+		HAL_UART_Transmit(&huart2,tab,3,1000);
 		HAL_Delay(3000);
 		//Debuggers is saying the temperature value is 23 i have to convert it to the ascii code
 		
