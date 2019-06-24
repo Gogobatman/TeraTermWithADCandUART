@@ -62,6 +62,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -71,6 +73,7 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_ADC1_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -109,6 +112,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_ADC1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
@@ -116,16 +120,30 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	uint8_t data[5]={'H','E','L','L','O'};
-	uint8_t dataIn[5]={'H','E','L','L','O'};
-	//uint16_t dataIn[5]={'X','X','X','X','X'};
+	uint8_t dataIn[2]={'9','9'};
+	uint8_t data[11]={'M','E','S','S','U','R','E',' ','I','S',' '};
+	uint8_t messureADC=53;
+	uint8_t messureADC2=53;
+	uint8_t Vsense=53;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		HAL_UART_Receive(&huart2,data,5,5000);
-		HAL_UART_Transmit(&huart2,data,5,1000);
+		HAL_ADC_Start(&hadc1);
+		if(HAL_ADC_PollForConversion(&hadc1,2000)==HAL_OK){
+		messureADC=HAL_ADC_GetValue(&hadc1);
+		Vsense=(3*messureADC/4095);
+		messureADC = ((Vsense-0.76)/0.0025)+25;
+			dataIn[0]=messureADC/10;
+			dataIn[1]=messureADC%10;
+		
+		}
+		//HAL_UART_Receive(&huart1,data,11,1000);
+		HAL_UART_Transmit(&huart2,data,11,1000);
+		HAL_UART_Transmit(&huart2,dataIn,2,1000);
+		HAL_Delay(3000);
+		//Debuggers is saying the temperature value is 23 i have to convert it to the ascii code
 		
 		
 		
@@ -173,8 +191,16 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_ADC;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
+  PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_MSI;
+  PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
+  PeriphClkInit.PLLSAI1.PLLSAI1N = 24;
+  PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
+  PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
+  PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
+  PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_ADC1CLK;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -185,6 +211,70 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_MultiModeTypeDef multimode = {0};
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /**Common config 
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc1.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /**Configure the ADC multi-mode 
+  */
+  multimode.Mode = ADC_MODE_INDEPENDENT;
+  if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /**Configure Regular Channel 
+  */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -229,21 +319,10 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : PA5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 

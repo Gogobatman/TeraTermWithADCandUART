@@ -3,6 +3,8 @@
 "tutorial1\main.o"
 "tutorial1\stm32l4xx_it.o"
 "tutorial1\stm32l4xx_hal_msp.o"
+"tutorial1\stm32l4xx_hal_adc.o"
+"tutorial1\stm32l4xx_hal_adc_ex.o"
 "tutorial1\stm32l4xx_hal_tim.o"
 "tutorial1\stm32l4xx_hal_tim_ex.o"
 "tutorial1\stm32l4xx_hal_uart.o"
